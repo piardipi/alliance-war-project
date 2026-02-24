@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İttifak Savaş Sahnesi</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            /* Dark background */
+            font-family: Arial, sans-serif;
+            color: white;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sol Panel */
+        #war-left-panel {
+            width: 350px;
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            border-right: 3px solid #ff3300;
+        }
+
+        .panel-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+
+        .panel-header h2 {
+            margin: 0;
+            color: #ffcc00;
+            text-transform: uppercase;
+        }
+
+        .panel-header p {
+            margin: 5px 0 0;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        #war-alliance-selector {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+            border-bottom: 2px solid #333;
+        }
+
+        .alliance-item {
+            padding: 8px;
+            background: #2a2a2a;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .alliance-item:hover {
+            background: #333;
+        }
+
+        .alliance-item.selected {
+            background: #444;
+        }
+
+        #war-selected-alliance-info {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+        }
+
+        /* Sağ Panel */
+        #war-right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        #war-stage {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            /* Don't crop videos too much */
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #war-default-text {
+            position: absolute;
+            color: #444;
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sol Panel: İttifak Listesi ve Seçili İttifak Bilgileri -->
+    <div id="war-left-panel">
+        <div class="panel-header">
+            <h2>Savaş Sahnesi</h2>
+            <p>İttifakını Seç ve Video Ata</p>
+        </div>
+
+        <!-- İttifak Seçim Listesi -->
+        <div id="war-alliance-selector"></div>
+
+        <!-- Seçili İttifak Görüntüsü -->
+        <div id="war-selected-alliance-info">
+            <div style="text-align:center; margin-bottom:15px;">
+                <span id="w-alli-symbol" style="font-size: 40px; display:block;"></span>
+                <h3 id="w-alli-name" style="color:#ffcc00; margin:5px 0 15px 0;"></h3>
+            </div>
+
+            <div style="font-size: 12px; color: #888; margin-bottom:5px; text-align:center;">--- DELEGELER ---</div>
+            <div id="w-alli-members"
+                style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-bottom: 25px;"></div>
+
+            <div style="font-size: 12px; color: #888; margin-bottom:10px; text-align:center;">--- DURUM VİDEOLARI ---
+            </div>
+
+            <div id="war-video-assignments" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+
+        <div id="war-no-selection"
+            style="flex:1; display:flex; align-items:center; justify-content:center; color:#555;">
+            Yukarından bir ittifak seçin
+        </div>
+    </div>
+
+    <!-- Sağ Panel: Merkeze Oturan Oynatma Alanı -->
+    <div id="war-right-panel">
+        <div id="war-stage">
+            <video id="war-video-player" muted></video>
+            <div id="war-default-text">
+                SAVAŞ SAHNESİ<br>
+                <span style="font-size:16px;">(Sol menüden video seçip test edin)</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="/alliance-war-logic.js"></script>
+</body>
+
+</html>

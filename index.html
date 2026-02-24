@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Earth Scene</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+  <script>
+    window.onerror = function (message, source, lineno, colno, error) {
+      alert("Error: " + message + "\nLine: " + lineno + "\nSource: " + source);
+    };
+  </script>
+  <div id="loading-overlay">
+    <div class="loader"></div>
+    <div class="loader-text">DÜNYA OLUŞTURULUYOR...</div>
+  </div>
+
+  <!-- Conquest Leaderboard (Top-Left) -->
+  <div class="conquest-panel">
+    <h3>Fetih Liderleri 🏆</h3>
+    <table id="leaderboard-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Oyuncu</th>
+          <th>Toprak</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Filled by JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Banner Container -->
+  <div id="banner-container" style="
+    position: fixed;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 0px; /* Interaction pass-through */
+    pointer-events: none;
+    z-index: 2000;
+    transform: translateY(-50%);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+  ">
+    <!-- Left: Attacker -->
+    <div id="banner-left" class="banner-box left-banner" style="display:none;"></div>
+
+    <!-- Right: Victim / Defeat -->
+    <div id="banner-right" class="banner-box right-banner" style="display:none;"></div>
+  </div>
+
+  <!-- Defeat Banner (Top Center) -->
+  <div id="banner-defeat" style="
+    position: fixed;
+    top: 5%;
+    left: 0;
+    width: 100%;
+    display: none;
+    justify-content: center;
+    gap: 20px;
+    pointer-events: none;
+    z-index: 2100;
+  "></div>
+
+  <!-- Fire Ring Video Overlay -->
+  <div id="fire-ring-overlay" class="hidden">
+    <div class="fire-ring-container shake-animation">
+      <div class="fire-ring"></div>
+      <div class="video-mask">
+        <video id="fire-ring-video" muted playsinline></video>
+      </div>
+      <div class="avatar-container"
+        style="top: 100%; margin-top: -65px; flex-direction: column; width: auto; height: auto; border: none; overflow: visible; position: absolute; display: flex; align-items: center; background: none; z-index: 10;">
+        <img id="fire-ring-avatar" src="" alt="User Avatar"
+          style="width: 140px; height: 140px; border-radius: 50%; border: 4px solid #ffd700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 69, 0, 0.6);">
+        <div id="fire-ring-username"
+          style="margin-top: 5px; color: #fff; font-weight: bold; font-size: 20px; text-shadow: 0 0 5px #000, 0 0 10px #ff4500; background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 20%, rgba(0,0,0,0.8) 80%, rgba(0,0,0,0) 100%); padding: 5px 20px; border-radius: 4px; letter-spacing: 1px;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Button (Top-Right) -->
+
+
+
+
+  <!-- Mode Toggle Button (Bottom-Right) -->
+  <button id="mode-toggle-btn" class="floating-btn"
+    style="position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); color: white; border: 2px solid rgba(255, 255, 255, 0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 1000; transition: all 0.3s ease;">
+    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"></circle>
+      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+      </path>
+    </svg>
+  </button>
+
+  <!-- Side Panel -->
+  <div id="mode-panel" class="side-panel">
+    <div class="panel-header">
+      <h2>Konsol</h2>
+    </div>
+
+    <div class="panel-content">
+      <!-- Phase 2.1: Layers -->
+      <!-- Phase 2.1: Layers -->
+
+      <div class="layer-control">
+        <label>
+          <input type="checkbox" id="layer-borders" checked
+            onchange="if(window.worldLayers) window.worldLayers.toggleBorders(this.checked)">
+          Ülke Sınırları
+        </label>
+        <label>
+          <input type="checkbox" id="layer-south-pole" checked> Güney Kutbu Alanı
+        </label>
+      </div>
+
+      <!-- Manual Conquest Removed -->
+
+      <!-- Label Scale Control -->
+      <div class="control-group" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 15px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <label style="color:#ccc; font-size:0.9rem; margin: 0;">İsim Boyutu: <span
+              id="label-scale-val">1.0</span></label>
+          <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; margin: 0;">
+            <input type="checkbox" id="toggle-labels" checked
+              onchange="if(window.toggleLabels) window.toggleLabels(this.checked)" style="cursor: pointer;">
+            <span style="color:#ccc; font-size:0.85rem;">Göster</span>
+          </label>
+        </div>
+        <input type="range" min="0.5" max="3.0" step="0.1" value="1.0" id="label-scale-slider"
+          oninput="document.getElementById('label-scale-val').innerText=this.value; if(window.setLabelScale) window.setLabelScale(this.value)"
+          style="width:100%">
+      </div>
+
+      <!-- Spacer -->
+      <div style="flex-grow: 1;"></div>
+
+      <!-- Spacer -->
+      <div style="flex-grow: 1;"></div>
+
+      <!-- Banner Settings (Stacked Layout) -->
+      <div class="control-group"
+        style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; display: flex; flex-direction: column; gap: 15px;">
+        <h4 style="margin: 0 0 5px 0; color: #ddd; font-size: 0.9rem;">Savaş Kutuları</h4>
+
+        <!-- Left Banner -->
+        <div
+          style="width: 100%; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; box-sizing: border-box;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
+            <label style="color:#2196F3; font-size:0.8rem; font-weight:bold;">Sol (Saldıran)</label>
+            <input type="checkbox" id="console-banner-left-vis" checked style="cursor: pointer;">
+          </div>
+          <div style="display:flex; align-items:center; gap: 5px;">
+            <span style="font-size:0.7rem; color:#aaa; min-width: 20px;" id="val-banner-left">100</span>
+            <input type="range" id="console-banner-left-dist" min="0" max="100" value="100"
+              style="width:100%; cursor: pointer;"
+              oninput="document.getElementById('val-banner-left').innerText = this.value">
+          </div>
+          <div style="text-align:right; font-size:0.65rem; color:#666;">0=Merkez, 100=Kenar</div>
+        </div>
+
+        <!-- Right Banner -->
+        <div
+          style="width: 100%; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 4px; box-sizing: border-box;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 5px;">
+            <label style="color:#FF5722; font-size:0.8rem; font-weight:bold;">Sağ (Savunan)</label>
+            <input type="checkbox" id="console-banner-right-vis" checked style="cursor: pointer;">
+          </div>
+          <div style="display:flex; align-items:center; gap: 5px;">
+            <span style="font-size:0.7rem; color:#aaa; min-width: 20px;" id="val-banner-right">100</span>
+            <input type="range" id="console-banner-right-dist" min="0" max="100" value="100"
+              style="width:100%; cursor: pointer;"
+              oninput="document.getElementById('val-banner-right').innerText = this.value">
+          </div>
+          <div style="text-align:right; font-size:0.65rem; color:#666;">0=Merkez, 100=Kenar</div>
+        </div>
+      </div>
+
+      <!-- Video Settings Buttons (Restored) -->
+      <div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 5px;">
+        <button id="open-video-settings-btn"
+          style="flex: 1; padding: 8px; background: #333; color: white; border: 1px solid #555; cursor: pointer; border-radius: 4px; font-size: 11px;">
+          ⚙️ Video Ayarları
+        </button>
+        <button id="open-video-assign-btn"
+          style="flex: 1; padding: 8px; background: #ff4500; color: white; border: none; cursor: pointer; border-radius: 4px; font-size: 11px; font-weight: bold;">
+          🎥 Video Ata
+        </button>
+      </div>
+
+      <!-- Manual Test Button (Preserved) -->
+      <div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <button id="manual-fire-console-btn"
+          style="width: 100%; padding: 10px; background: #ff4500; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 13px;">
+          🔥 Manuel Test Et
+        </button>
+      </div>
+
+      <!-- Phase 11: İttifak Savaş Sahnesi Yeni Sayfa -->
+      <div style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.1); position:relative; overflow: visible;">
+        <button onclick="window.open('/alliance-war.html', '_blank', 'width=1280,height=720')"
+          title="İttifak Savaş Sahnesi"
+          style="width: 100%; padding: 10px; background: linear-gradient(45deg, #cc0000, #ff6600); color: white; border: 2px solid gold; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px black; box-shadow: 0 0 10px rgba(255,0,0,0.5); display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span style="font-size: 18px;">🎯</span> <span>A - Savaş Sahnesi (Ayrı Sayfa)</span>
+        </button>
+      </div>
+
+      <!-- Phase 2.2: South Pole Settings (Moved to Bottom) -->
+      <div class="south-pole-settings">
+        <h3>Güney Kutbu Ayarları</h3>
+        <div class="control-group">
+          <label>Slot ID (1-100):</label>
+          <input type="number" id="sp-slot-id" min="1" max="100" value="1">
+        </div>
+        <div class="control-group">
+          <label>İsim:</label>
+          <input type="text" id="sp-name-input" placeholder="Slot İsmi">
+        </div>
+        <div class="control-group">
+          <label>Resim Yükle:</label>
+          <input type="file" id="sp-image-input" accept="image/*">
+        </div>
+        <button id="sp-set-btn">Ata</button>
+      </div>
+
+
+      <div style="padding: 15px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 15px;">
+        <button id="reset-map-btn"
+          style="width: 100%; padding: 12px; background: #d32f2f; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 14px;">
+          🔄 Haritayı Sıfırla
+        </button>
+      </div>
+    </div>
+
+    <div class="panel-footer">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin: 0;">Dünya Modları</h3>
+        <button id="close-panel-btn"
+          style="background: none; border: none; color: white; font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;">✕</button>
+      </div>
+      <label class="mode-option">
+        <input type="radio" name="world-mode" value="realistic" checked>
+        <span>Gerçekçi Dünya</span>
+      </label>
+      <label class="mode-option">
+        <input type="radio" name="world-mode" value="cartoon">
+        <span>Çizgi Dünya</span>
+      </label>
+      <label class="mode-option">
+        <input type="radio" name="world-mode" value="conquest">
+        <span>Fetih Dünyası</span>
+      </label>
+    </div>
+
+  </div>
+  </div>
+
+  </div>
+
+  <!-- Phase 7: Like Gift Arena (Moved to Root) -->
+
+  <!-- 1. Floating Gift Box -->
+  <div id="like-gift-box">🎁</div>
+
+  <!-- 2. Main Arena Panel -->
+  <div id="like-arena-panel" class="hidden">
+    <div class="arena-header">
+      <div id="arena-panel-drag-handle"
+        style="flex-grow:1; cursor: grab; display:flex; align-items:center; overflow:hidden;">
+        <h3 style="margin:0 10px 0 0; font-size:0.9em; white-space:nowrap;">🎁 BEĞENENLER</h3>
+      </div>
+
+      <!-- Header Tabs (Icons) -->
+      <div class="header-tabs" style="display:flex; gap:2px; margin-right:5px;">
+        <button class="header-tab-btn active" data-target="view-live" title="Canlı Sıralama">📊</button>
+        <button class="header-tab-btn" data-target="view-winners" title="Kazananlar">🏆</button>
+      </div>
+
+      <button id="close-arena-panel" class="close-btn" style="font-size:1.5em; padding:0 5px;">&times;</button>
+    </div>
+
+    <!-- View: Live Ranking -->
+    <div id="view-live" class="arena-view active">
+      <!-- Stats Removed as requested -->
+
+      <div id="arena-list-body" class="arena-list-container">
+        <div style="text-align:center; padding:20px; color:#666;">Henüz veri yok...</div>
+      </div>
+    </div>
+
+    <!-- View: Winners History -->
+    <div id="view-winners" class="arena-view" style="display:none;">
+      <div id="internal-winners-list" class="arena-list-container">
+        <!-- Winners injected here -->
+      </div>
+      <div style="padding:10px; text-align:center;">
+        <button id="clear-history-btn" class="control-btn"
+          style="background:#444; font-size:0.8em; padding:5px 10px;">🗑 Geçmişi Temizle</button>
+      </div>
+    </div>
+
+    <div class="arena-footer"
+      style="padding:5px; background:#1a1a1a; border-top:1px solid #333; display:flex; justify-content: space-between; gap:5px;">
+      <button id="start-race-btn" class="control-btn accent-btn compact-btn">▶ Başlat</button>
+      <button id="pick-winner-btn" class="control-btn gold-btn compact-btn">🏆 Seç</button>
+      <button id="stop-race-btn" class="control-btn gray-btn compact-btn">⏹ Dur</button>
+      <button id="reset-race-btn" class="control-btn gray-btn compact-btn">🔄 Sıfırla</button>
+    </div>
+  </div>
+
+  <!-- Opening Animation Text -->
+  <div id="arena-intro-text">✨ BEĞENENLERE ÖZEL ✨</div>
+
+
+
+  <!-- 4. Visual FX Overlay -->
+  <div id="visual-fx-overlay">
+    <div id="winner-spotlight-container"></div>
+  </div>
+
+  <!-- 5. Winner Selection Modal -->
+  <div id="winner-selection-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:4000; justify-content:center; align-items:center;">
+    <div
+      style="background:#222; padding:20px; border-radius:8px; width:300px; text-align:center; box-shadow:0 0 20px #000;">
+      <h3 style="color:gold; margin-top:0;">Kazanan Seçimi</h3>
+      <p style="color:#ccc; font-size:0.9em; margin-bottom:20px;">Nasıl bir seçim yapmak istersiniz?</p>
+
+      <div style="display:grid; gap:10px;">
+        <button class="winner-option-btn control-btn" data-mode="top" data-count="1">🥇 Birinciye Ver</button>
+        <button class="winner-option-btn control-btn" data-mode="top" data-count="3">🥉 İlk 3 Kişiye Ver</button>
+        <button class="winner-option-btn control-btn" data-mode="top" data-count="5">🎖 İlk 5 Kişiye Ver</button>
+        <hr style="width:100%; border:0; border-top:1px solid #444;">
+        <button id="raffle-mode-btn" class="control-btn">🎲 Rastgele Çekiliş (1 Kişi)</button>
+      </div>
+
+      <button id="close-winner-modal"
+        style="margin-top:20px; background:none; border:none; color:#888; cursor:pointer; text-decoration:underline;">İptal</button>
+    </div>
+  </div>
+
+  </div>
+  </div>
+
+  <!-- Orta Sağ Butonlar (İttifak & Jeton) -->
+  <div id="mid-right-buttons-container"
+    style="position:fixed; top:50%; right:24px; transform:translateY(-50%); display:flex; flex-direction:column; gap:16px; z-index:5000; align-items:center; transition:right 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+    <!-- 🛡 İttifak Butonu (Sağ Orta) -->
+    <button id="alliance-fab" title="İttifak Menüsü" style="width:50px; height:50px; border-radius:50%;
+             background:radial-gradient(circle, #2a5298, #1e3c72); border:3px solid #4da8da; cursor:pointer;
+             font-size:22px; box-shadow:0 0 20px rgba(77, 168, 218, 0.6), inset 0 0 10px rgba(255,255,255,0.2);
+             display:flex; align-items:center; justify-content:center;
+             transition:all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);"
+      onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 0 30px rgba(77, 168, 218, 0.9), inset 0 0 15px rgba(255,255,255,0.4)'"
+      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 0 20px rgba(77, 168, 218, 0.6), inset 0 0 10px rgba(255,255,255,0.2)'">
+      🛡️
+    </button>
+    <!-- 🪙 Manuel Token Gönder Butonu -->
+    <button id="token-send-fab" title="Oyuncuya Jeton Gönder" style="width:50px; height:50px; border-radius:50%;
+             background:linear-gradient(135deg,#f5a623,#f76b1c); border:none; cursor:pointer;
+             font-size:22px; box-shadow:0 4px 18px rgba(245,166,35,0.5);
+             display:flex; align-items:center; justify-content:center;
+             transition:transform 0.2s, box-shadow 0.2s;"
+      onmouseover="this.style.transform='scale(1.15)'; this.style.boxShadow='0 6px 24px rgba(245,166,35,0.7)'"
+      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 18px rgba(245,166,35,0.5)'">
+      🪙
+    </button>
+  </div>
+
+  <!-- 🛡 İttifak Paneli Modal V2 -->
+  <div id="alliance-modal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%);
+           z-index:5100; width:450px; max-width:90vw;">
+    <div style="background:#1a1a2e; padding:15px; border-radius:12px; width:100%; max-height:85vh;
+                border:1px solid #4da8da; color:white; display:flex; flex-direction:column; gap:12px;
+                box-shadow:0 0 30px rgba(77, 168, 218, 0.4); overflow-y:auto;
+                animation: slideInRight 0.2s ease;">
+
+      <div
+        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">
+        <h3 style="margin:0; color:#4da8da; display:flex; align-items:center; gap:8px;">🛡️ İttifak Sistemi</h3>
+        <button id="close-alliance-modal"
+          style="background:none; border:none; color:#aaa; cursor:pointer; font-size:22px; line-height:1; transition:color 0.2s;"
+          onmouseover="this.style.color='white'" onmouseout="this.style.color='#aaa'">&times;</button>
+      </div>
+
+      <!-- Yeni İttifak Kurma Formu -->
+      <div style="background:rgba(255,255,255,0.05); padding:10px 15px; border-radius:8px;">
+        <h4 style="margin:0 0 8px 0; color:#ddd; border-bottom:1px solid #333; padding-bottom:5px; font-size:14px;">Yeni
+          İttifak Kur (Maks 3 Kişi)</h4>
+
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="text" id="alli-name" placeholder="İttifak Adı (Örn: ANKA)" maxlength="16"
+            style="flex:2; padding:8px; background:#111; border:1px solid #4da8da; color:white; border-radius:5px; box-sizing:border-box; font-weight:bold; font-size:13px;">
+          <input type="text" id="alli-symbol" placeholder="Sembol (Emoji/Yazı)" maxlength="8"
+            style="flex:1; padding:8px; background:#111; border:1px solid #4da8da; color:white; border-radius:5px; box-sizing:border-box; font-size:13px;">
+        </div>
+
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <input type="text" id="alli-m1" placeholder="Üye 1 (TikTok Adı)"
+            style="flex:1; padding:8px; background:#111; border:1px solid #333; color:white; border-radius:5px; box-sizing:border-box; font-size:12px; max-width: 32%;">
+          <input type="text" id="alli-m2" placeholder="Üye 2 (Opsiyonel)"
+            style="flex:1; padding:8px; background:#111; border:1px solid #333; color:white; border-radius:5px; box-sizing:border-box; font-size:12px; max-width: 32%;">
+          <input type="text" id="alli-m3" placeholder="Üye 3 (Opsiyonel)"
+            style="flex:1; padding:8px; background:#111; border:1px solid #333; color:white; border-radius:5px; box-sizing:border-box; font-size:12px; max-width: 32%;">
+        </div>
+
+        <button id="alli-save-btn"
+          style="width:100%; padding:8px; background:linear-gradient(135deg, #4da8da, #2a5298); border:none; color:white; font-weight:bold; border-radius:5px; cursor:pointer; font-size:13px;">💾
+          Kaydet</button>
+      </div>
+
+      <!-- Kurulu İttifaklar Listesi -->
+      <div style="flex:1; display:flex; flex-direction:column; margin-top:10px;">
+        <h4 style="margin:0 0 10px 0; color:#ddd; border-bottom:1px solid #333; padding-bottom:5px;">Kurulu İttifaklar
+        </h4>
+        <div id="alli-list"
+          style="max-height: 250px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:5px;">
+          <!-- JS ile dolacak -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const fab = document.getElementById('alliance-fab');
+      const modal = document.getElementById('alliance-modal');
+      const closeBtn = document.getElementById('close-alliance-modal');
+      const saveBtn = document.getElementById('alli-save-btn');
+
+      if (fab) fab.addEventListener('click', () => { modal.style.display = 'flex'; window.renderCustomAlliancesUI(); });
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.style.display = 'none');
+
+      // UI Rendering
+      window.renderCustomAlliancesUI = function () {
+        const list = document.getElementById('alli-list');
+        list.innerHTML = '';
+        const alliances = JSON.parse(localStorage.getItem('customAlliances')) || [];
+
+        if (alliances.length === 0) {
+          list.innerHTML = '<div style="color:#aaa; text-align:center; padding:20px;">Henüz kurulumuş ittifak yok.</div>';
+          return;
+        }
+
+        alliances.forEach(a => {
+          let membersHtml = '';
+          // For each member, we either have a real avatar url from game, or a default
+          a.members.forEach(m => {
+            let avatarUrl = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png';
+            if (a.memberAvatars && a.memberAvatars[m]) {
+              avatarUrl = a.memberAvatars[m];
+            } else if (window.conquestLayer) {
+              // Try to fetch from current active players if they already gifted before alliance was formed
+              const pl = Object.values(window.conquestLayer.players).find(p => p.username.toLowerCase() === m);
+              if (pl && pl.avatar) {
+                avatarUrl = pl.avatar;
+              }
+            }
+
+            membersHtml += `
+                      <div style="display:flex; flex-direction:column; align-items:center; width:65px; margin:0 3px;">
+                          <img src="${avatarUrl}" style="width:36px; height:36px; border-radius:50%; border:2px solid ${a.colorHex}; object-fit:cover; margin-bottom:3px;">
+                          <span title="${m}" style="font-size:10px; color:#ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65px; display:inline-block; text-align:center;">${m}</span>
+                      </div>
+                  `;
+          });
+
+          let addMemberHtml = '';
+          if (a.members.length < 3) {
+            addMemberHtml = `
+              <div style="margin-top: 10px; display:flex; gap: 5px; justify-content:center;">
+                <input type="text" class="new-member-input" data-id="${a.id}" placeholder="Yeni Üye (TikTok Adı)" style="padding:4px; font-size:11px; border-radius:3px; border:1px solid #555; background:#222; color:white; width:120px;">
+                <button class="alli-add-member-btn" data-id="${a.id}" style="background:#4CAF50; border:none; color:white; padding:4px 8px; border-radius:3px; font-size:11px; cursor:pointer;">Ekle</button>
+              </div>
+            `;
+          }
+
+          list.innerHTML += `
+                  <div style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-left:4px solid ${a.colorHex}; border-radius:6px; padding:10px; position:relative;">
+                      <div style="display:flex; justify-content:space-between; margin-bottom:8px; align-items:center;">
+                          <div style="font-weight:bold; color:white; font-size:14px; display:flex; align-items:center; gap:6px;">
+                              <span style="font-size:16px;">${a.symbol}</span> ${a.name}
+                          </div>
+                          <button class="alli-delete-btn" data-id="${a.id}" style="background:rgba(244,67,54,0.1); border:1px solid #f44336; color:#f44336; border-radius:4px; padding:3px 8px; cursor:pointer; font-size:10px; transition:all 0.2s;">
+                            Sil
+                          </button>
+                      </div>
+                      <div style="display:flex; justify-content:center; flex-wrap:nowrap; overflow-x:auto;">
+                          ${membersHtml}
+                      </div>
+                      ${addMemberHtml}
+                  </div>
+              `;
+        });
+
+        // Add Member Events
+        document.querySelectorAll('.alli-add-member-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            const input = document.querySelector(`.new-member-input[data-id="${id}"]`);
+            const newMemberName = input ? input.value.trim().toLowerCase() : '';
+
+            if (!newMemberName) {
+              alert("Lütfen eklenecek üyenin adını girin!");
+              return;
+            }
+
+            let alliances = JSON.parse(localStorage.getItem('customAlliances')) || [];
+            let alliance = alliances.find(a => a.id === id);
+
+            if (alliance) {
+              if (alliance.members.length >= 3) {
+                alert("Bu ittifak zaten maksimum üye sınırına (3) ulaşmış.");
+                return;
+              }
+              if (alliance.members.includes(newMemberName)) {
+                alert("Bu kişi zaten ittifak üyesi!");
+                return;
+              }
+
+              // Harita kontrolü (Önceki toprağı var mı?)
+              if (window.conquestLayer && window.conquestLayer.players) {
+                const pl = Object.values(window.conquestLayer.players).find(p => p.username.toLowerCase() === newMemberName);
+                if (pl && pl.landCount > 0) {
+                  alert(`KAYIT ENGELLENDİ!\nEklemeye çalıştığınız "${newMemberName}" adlı kullanıcının haritada aktif toprakları bulunuyor. Lütfen önce haritayı temizleyin.`);
+                  return;
+                }
+              }
+
+              alliance.members.push(newMemberName);
+              localStorage.setItem('customAlliances', JSON.stringify(alliances));
+
+              if (window.conquestLayer) window.conquestLayer.loadAlliances();
+              window.renderCustomAlliancesUI();
+            }
+          });
+        });
+
+        // Delete Events
+        document.querySelectorAll('.alli-delete-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const id = e.target.getAttribute('data-id');
+            if (confirm("Bu ittifakı silmek istediğinize emin misiniz? Haritadaki varlıkları kalır ancak isim/renk bağı kopar.")) {
+              let alliances = JSON.parse(localStorage.getItem('customAlliances')) || [];
+              alliances = alliances.filter(a => a.id !== id);
+              localStorage.setItem('customAlliances', JSON.stringify(alliances));
+
+              // Notify game logic
+              if (window.conquestLayer) window.conquestLayer.loadAlliances();
+              window.renderCustomAlliancesUI();
+            }
+          });
+        });
+      };
+
+      // Save Form
+      if (saveBtn) {
+        saveBtn.addEventListener('click', () => {
+          const name = document.getElementById('alli-name').value.trim();
+          const symbol = document.getElementById('alli-symbol').value.trim();
+          const m1 = document.getElementById('alli-m1').value.trim().toLowerCase();
+          const m2 = document.getElementById('alli-m2').value.trim().toLowerCase();
+          const m3 = document.getElementById('alli-m3').value.trim().toLowerCase();
+
+          if (!name || !symbol || !m1) {
+            alert("İttifak Adı, Sembol ve en az 1. Üye (TikTok adı) zorunludur!");
+            return;
+          }
+
+          const members = [m1];
+          if (m2 && m2 !== m1) members.push(m2);
+          if (m3 && m3 !== m1 && m3 !== m2) members.push(m3);
+
+          // Phase 9 - Kayıt Güvenliği: Harita Çakışma Kontrolü
+          if (window.conquestLayer && window.conquestLayer.players) {
+            const existingMapPlayers = members.filter(m => {
+              const pl = Object.values(window.conquestLayer.players).find(p => p.username.toLowerCase() === m);
+              // Toprağı/merkezi varsa "haritada var" kabul et
+              return pl && pl.landCount > 0;
+            });
+            if (existingMapPlayers.length > 0) {
+              alert(`KAYIT ENGELLENDİ!\nEklemeye çalıştığınız şu üyelerin haritada hali hazırda aktif toprakları / varlıkları bulunuyor:\n[ ${existingMapPlayers.join(', ')} ]\n\nİttifakı oluşturmadan önce lütfen bu üyeleri silin (veya haritayı temizleyin) ve tekrar deneyin.`);
+              return;
+            }
+          }
+
+          const alliances = JSON.parse(localStorage.getItem('customAlliances')) || [];
+
+          // Generate distinct color -> golden angle logic
+          const hue = (alliances.length * 137.5 + 45) % 360; // offset slightly
+          const rgbStr = `hsl(${hue}, 100%, 55%)`; // UI Hex/color string
+
+          // We need an RGB object mapping for ThreeJS -> {r,g,b}
+          // Since we don't have access to THREE here directly easily, we'll calculate basic HSL to RGB
+          // or just store HSL and let main.js handle it.
+
+          const newAlli = {
+            id: 'alli_' + Date.now(),
+            name: name,
+            symbol: symbol,
+            members: members,
+            memberAvatars: {},
+            colorHex: rgbStr,
+            baseHue: hue / 360 // Use this in main.js
+          };
+
+          alliances.push(newAlli);
+          localStorage.setItem('customAlliances', JSON.stringify(alliances));
+
+          // Clear
+          document.getElementById('alli-name').value = '';
+          document.getElementById('alli-symbol').value = '';
+          document.getElementById('alli-m1').value = '';
+          document.getElementById('alli-m2').value = '';
+          document.getElementById('alli-m3').value = '';
+
+          // Sync
+          if (window.conquestLayer) window.conquestLayer.loadAlliances();
+          window.renderCustomAlliancesUI();
+        });
+      }
+    })();
+  </script>
+
+  <!-- Jeton Butonu yukarı taşındı -->
+
+  <!-- 🪙 Manuel Token Gönder Modal -->
+  <div id="token-send-modal" style="display:none; position:fixed; bottom:160px; right:20px;
+           z-index:5100; width:340px;">
+    <div style="background:#1a1a2e; padding:20px; border-radius:14px; width:100%; max-height:70vh;
+                border:1px solid #f5a623; color:white; display:flex; flex-direction:column; gap:12px;
+                box-shadow:0 0 30px rgba(245,166,35,0.4); overflow:hidden;
+                animation: slideInRight 0.2s ease;">
+
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; color:#f5a623;">🪙 Jeton Gönder</h3>
+        <button id="close-token-modal"
+          style="background:none; border:none; color:#aaa; cursor:pointer; font-size:22px; line-height:1;">&times;</button>
+      </div>
+
+      <p style="margin:0; color:#aaa; font-size:0.85em;">Oyuncu seç ve göndermek istediğin jeton miktarını gir.</p>
+
+      <!-- Oyuncu Arama -->
+      <div style="position:relative;">
+        <span
+          style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#666;pointer-events:none;">🔍</span>
+        <input id="token-player-search" type="text" placeholder="Oyuncu ara..." style="width:100%;padding:8px 10px 8px 32px;background:#111;border:1px solid #444;color:white;
+                 border-radius:8px;font-size:0.9em;box-sizing:border-box;outline:none;"
+          oninput="window._tokenSearchFilter && window._tokenSearchFilter(this.value)">
+      </div>
+
+      <!-- Oyuncu Listesi -->
+      <div id="token-player-list"
+        style="max-height:220px; overflow-y:auto; border:1px solid #333; border-radius:8px; padding:6px;">
+        <p style="color:#555; text-align:center; margin:10px 0;">Oyuncular yükleniyor...</p>
+      </div>
+
+      <!-- Miktar -->
+      <div style="display:flex; gap:8px; align-items:center;">
+        <label style="color:#ddd; white-space:nowrap; font-size:0.9em;">Miktar:</label>
+        <input id="token-amount-input" type="number" value="100" min="1" max="99999" style="flex:1; padding:8px 10px; background:#111; border:1px solid #444; color:white;
+                 border-radius:6px; font-size:1em;">
+      </div>
+
+      <!-- Hızlı Butonlar -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="token-quick-btn" data-val="10"
+          style="flex:1; padding:6px; background:#222; border:1px solid #444; color:#ffd700; border-radius:6px; cursor:pointer;">+10</button>
+        <button class="token-quick-btn" data-val="50"
+          style="flex:1; padding:6px; background:#222; border:1px solid #444; color:#ffd700; border-radius:6px; cursor:pointer;">+50</button>
+        <button class="token-quick-btn" data-val="100"
+          style="flex:1; padding:6px; background:#222; border:1px solid #444; color:#ffd700; border-radius:6px; cursor:pointer;">+100</button>
+        <button class="token-quick-btn" data-val="500"
+          style="flex:1; padding:6px; background:#222; border:1px solid #444; color:#ffd700; border-radius:6px; cursor:pointer;">+500</button>
+        <button class="token-quick-btn" data-val="1000"
+          style="flex:1; padding:6px; background:#222; border:1px solid #444; color:#ffd700; border-radius:6px; cursor:pointer;">+1000</button>
+      </div>
+
+      <!-- Gönder Butonu -->
+      <button id="token-send-confirm" style="padding:12px; background:linear-gradient(135deg,#f5a623,#f76b1c); border:none;
+               color:white; font-weight:bold; font-size:1em; border-radius:8px; cursor:pointer;
+               transition:opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+        🚀 Jeton Gönder
+      </button>
+
+      <div id="token-send-feedback" style="text-align:center; font-size:0.85em; color:#4caf50; min-height:18px;"></div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      let selectedPlayerId = null;
+      let searchQuery = '';
+
+      const fab = document.getElementById('token-send-fab');
+      const modal = document.getElementById('token-send-modal');
+      const closeBtn = document.getElementById('close-token-modal');
+      const confirmBtn = document.getElementById('token-send-confirm');
+      const playerList = document.getElementById('token-player-list');
+      const amountInput = document.getElementById('token-amount-input');
+      const feedback = document.getElementById('token-send-feedback');
+
+      // Arama filtresi (global erişim için)
+      window._tokenSearchFilter = function (val) {
+        searchQuery = val.toLowerCase().trim();
+        renderPlayerList();
+        // Arama sonrası seçimi koru
+        if (selectedPlayerId) {
+          const row = playerList.querySelector(`[data-id="${selectedPlayerId}"]`);
+          if (row) { row.style.background = 'rgba(245,166,35,0.15)'; row.style.borderColor = '#f5a623'; }
+        }
+      };
+
+      // Modalı aç
+      fab.addEventListener('click', () => {
+        modal.style.display = 'flex';
+        const searchBox = document.getElementById('token-player-search');
+        if (searchBox) { searchBox.value = ''; searchQuery = ''; }
+        renderPlayerList();
+        feedback.textContent = '';
+      });
+
+      // Kapat
+      closeBtn.addEventListener('click', () => modal.style.display = 'none');
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+      // Hızlı miktar butonları
+      document.querySelectorAll('.token-quick-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          amountInput.value = parseInt(amountInput.value || 0) + parseInt(btn.dataset.val);
+        });
+      });
+
+      // Oyuncuyu oyundan sil
+      function deletePlayer(playerId) {
+        const game = window.conquestLayer;
+        if (!game || !game.players[playerId]) return;
+        const p = game.players[playerId];
+        if (!confirm(`"${p.username}" oyuncusunu silmek istiyor musunuz?\nToprakları boşaltılacak.`)) return;
+
+        // Grid'den topraklarını temizle
+        const { grid, width, height, imageData, players, frontier } = game;
+        for (let i = 0; i < grid.length; i++) {
+          if (grid[i] === playerId) {
+            grid[i] = 0;
+            const pIdx = i * 4;
+            imageData.data[pIdx] = 0;
+            imageData.data[pIdx + 1] = 0;
+            imageData.data[pIdx + 2] = 0;
+            imageData.data[pIdx + 3] = 0;
+          }
+        }
+        // Frontier, sprites ve player kaydını temizle
+        if (frontier[playerId]) delete frontier[playerId];
+        if (players[playerId].sprite) players[playerId].sprite.visible = false;
+        if (players[playerId].avatars) {
+          players[playerId].avatars.forEach(av => {
+            if (av.sprite) av.sprite.visible = false;
+            if (av.label) av.label.visible = false;
+          });
+        }
+        delete players[playerId];
+
+        // tiktokLayer'dan da temizle
+        const tl = window.tiktokLayer;
+        if (tl) {
+          if (tl.pendingGrowth && tl.pendingGrowth[p.username]) delete tl.pendingGrowth[p.username];
+          if (tl.users && tl.users[p.username]) delete tl.users[p.username];
+        }
+
+        game.ctx.putImageData(imageData, 0, 0);
+        game.updateTexture && game.updateTexture();
+        game.updateLeaderboard && game.updateLeaderboard(true);
+        game.saveGameStateDebounced && game.saveGameStateDebounced();
+
+        if (selectedPlayerId === playerId) selectedPlayerId = null;
+        renderPlayerList();
+        feedback.style.color = '#f44336';
+        feedback.textContent = `🗑 ${p.username} silindi.`;
+      }
+
+      // Oyuncu listesini doldur
+      function renderPlayerList() {
+        playerList.innerHTML = '';
+
+        const game = window.conquestLayer;
+        if (!game || !game.players) {
+          playerList.innerHTML = '<p style="color:#555; text-align:center; margin:10px;">Oyuncular bulunamadı.</p>';
+          return;
+        }
+
+        let activePlayers = Object.values(game.players).filter(p => !p.isDead && p.landCount > 0);
+
+        // Arama filtresi uygula
+        if (searchQuery) {
+          activePlayers = activePlayers.filter(p => p.username.toLowerCase().includes(searchQuery));
+        }
+
+        if (activePlayers.length === 0) {
+          playerList.innerHTML = '<p style="color:#555; text-align:center; margin:10px;">' +
+            (searchQuery ? 'Oyuncu bulunamadı.' : 'Henüz aktif oyuncu yok.') + '</p>';
+          return;
+        }
+
+        activePlayers.sort((a, b) => b.landCount - a.landCount);
+
+        activePlayers.forEach(p => {
+          const colorHex = `rgb(${Math.round(p.color.r)},${Math.round(p.color.g)},${Math.round(p.color.b)})`;
+          const row = document.createElement('div');
+          row.dataset.id = p.id;
+          row.style.cssText = `display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;
+            cursor:pointer;transition:background 0.15s;margin-bottom:3px;border:2px solid transparent;
+            ${selectedPlayerId === p.id ? 'background:rgba(245,166,35,0.15);border-color:#f5a623;' : ''}`;
+
+          // Avatar + İsim + Toprak
+          const info = document.createElement('div');
+          info.style.cssText = 'display:flex;align-items:center;gap:8px;flex:1;min-width:0;';
+          info.innerHTML = `
+            <img src="${p.avatar || ''}" style="width:30px;height:30px;border-radius:50%;border:2px solid ${colorHex};object-fit:cover;flex-shrink:0;"
+              onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 40 40%22><circle cx=%2220%22 cy=%2220%22 r=%2220%22 fill=%22%23333%22/></svg>'">
+            <div style="flex:1;min-width:0;">
+              <div style="color:white;font-weight:bold;font-size:0.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.username}</div>
+              <div style="color:#aaa;font-size:0.72em;">🗺 ${p.landCount.toLocaleString()} toprak</div>
+            </div>
+            <div style="width:9px;height:9px;border-radius:50%;background:${colorHex};flex-shrink:0;"></div>
+          `;
+
+          // Sil butonu
+          const delBtn = document.createElement('button');
+          delBtn.title = 'Oyuncuyu Sil';
+          delBtn.textContent = '🗑';
+          delBtn.style.cssText = `background:rgba(244,67,54,0.15);border:1px solid rgba(244,67,54,0.4);
+            color:#f44336;border-radius:5px;padding:4px 7px;cursor:pointer;font-size:0.8em;
+            flex-shrink:0;transition:background 0.15s;`;
+          delBtn.onmouseover = () => delBtn.style.background = 'rgba(244,67,54,0.35)';
+          delBtn.onmouseout = () => delBtn.style.background = 'rgba(244,67,54,0.15)';
+          delBtn.onclick = (e) => { e.stopPropagation(); deletePlayer(p.id); };
+
+          // Satıra tıklama → seçim
+          info.addEventListener('click', () => {
+            selectedPlayerId = p.id;
+            playerList.querySelectorAll('[data-id]').forEach(r => {
+              r.style.background = 'transparent'; r.style.borderColor = 'transparent';
+            });
+            row.style.background = 'rgba(245,166,35,0.15)';
+            row.style.borderColor = '#f5a623';
+          });
+
+          row.appendChild(info);
+          row.appendChild(delBtn);
+          playerList.appendChild(row);
+        });
+      }
+
+      // Jeton gönder
+      confirmBtn.addEventListener('click', () => {
+        const amount = parseInt(amountInput.value);
+        if (!selectedPlayerId) {
+          feedback.style.color = '#f44336';
+          feedback.textContent = '❌ Lütfen bir oyuncu seç!';
+          return;
+        }
+        if (!amount || amount < 1) {
+          feedback.style.color = '#f44336';
+          feedback.textContent = '❌ Geçerli bir miktar gir!';
+          return;
+        }
+
+        const game = window.conquestLayer;
+        const player = game && game.players[selectedPlayerId];
+        if (!player) {
+          feedback.style.color = '#f44336';
+          feedback.textContent = '❌ Oyuncu artık mevcut değil!';
+          return;
+        }
+
+        const tl = window.tiktokLayer;
+        if (tl && tl.pendingGrowth !== undefined) {
+          if (!tl.pendingGrowth[player.username]) tl.pendingGrowth[player.username] = 0;
+          tl.pendingGrowth[player.username] += amount;
+          feedback.style.color = '#4caf50';
+          feedback.textContent = `✅ ${player.username} → +${amount} jeton kuyruğa eklendi!`;
+        } else if (game && game.grow) {
+          game.grow(player.id, amount, true, false);
+          game.updateTexture && game.updateTexture();
+          feedback.style.color = '#4caf50';
+          feedback.textContent = `✅ ${player.username} → +${amount} jeton gönderildi!`;
+        }
+      });
+    })();
+  </script>
+
+
+  <script type="module">
+    import { LikeArenaManager } from './LikeArenaManager.js';
+    window.LikeArenaManagerInstance = new LikeArenaManager();
+  </script>
+  <script type="module" src="/main.js"></script>
+  <script src="/AllianceWarManager.js"></script>
+
+  <!-- Phase 6: Video Settings Modal (Legacy Restored) -->
+  <div id="video-settings-modal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:4000;">
+    <div style="background:#1e1e1e; padding:20px; border-radius:10px; width:400px; border:1px solid #444; color:white;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0;">⚙️ Video Ayarları</h3>
+        <button id="close-video-settings-x"
+          style="background:none; border:none; color:#aaa; cursor:pointer; font-size:18px;">&times;</button>
+      </div>
+
+      <div style="margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px;">
+        <label style="display:flex; justify-content:space-between; align-items:center;">
+          <span>🔥 Tetikleyici Adedi (1-5):</span>
+          <input type="number" id="modal-trigger-count" min="1" max="5" value="2"
+            style="width:50px; padding:5px; background:#333; border:1px solid #555; color:white; text-align:center;">
+        </label>
+      </div>
+
+      <div style="margin-bottom:10px; font-size:12px; color:#aaa; display:flex; justify-content:space-between;">
+        <span>Video Adı</span>
+        <span>Süre (sn) | Aktif</span>
+      </div>
+
+      <div id="modal-video-list"
+        style="height:250px; overflow-y:auto; border:1px solid #333; padding:5px; margin-bottom:15px;">
+        <!-- Filled by JS -->
+        <div style="text-align:center; padding:10px; color:#666;">Yükleniyor...</div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button id="cancel-video-settings-btn"
+          style="padding:8px 15px; background:#444; border:none; color:white; border-radius:4px; cursor:pointer;">İptal</button>
+        <button id="save-video-settings-btn"
+          style="padding:8px 15px; background:#4caf50; border:none; color:white; border-radius:4px; cursor:pointer; font-weight:bold;">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Assignment Panel (Slide-out) -->
+  <div id="video-assign-panel" class="side-panel" style="width: 350px; z-index: 2500;">
+    <div class="panel-header">
+      <h2>🔥 Oyuncuya Video Ata</h2>
+      <button id="close-assign-panel-btn" class="close-btn">&times;</button>
+    </div>
+
+    <div class="panel-content" style="overflow-y: auto;">
+
+      <!-- Global Trigger Setting (Synced) -->
+      <div
+        style="background: rgba(255, 140, 0, 0.1); padding: 10px; border-radius: 6px; margin-bottom: 20px; border: 1px solid rgba(255, 69, 0, 0.3);">
+        <label
+          style="display: flex; justify-content: space-between; align-items: center; color: #ffd700; margin-bottom: 5px; font-weight: bold;">
+          <span>⚡ Tetikleyici Jeton Adedi:</span>
+          <input type="number" id="assign-trigger-count" value="2" min="1" max="5"
+            style="width: 60px; padding: 5px; background: #222; border: 1px solid #ff4500; color: white; text-align: center; font-weight: bold; border-radius: 4px;">
+        </label>
+        <div style="font-size: 11px; color: #aaa;">Bu miktar tüm sistem için geçerlidir (1-5).</div>
+      </div>
+
+      <!-- New Assignment Form -->
+      <div style="margin-bottom: 20px;">
+        <h3
+          style="font-size: 14px; color: #ddd; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px;">
+          Yeni Atama Yap</h3>
+
+        <div style="margin-bottom: 10px;">
+          <label style="display: block; color: #aaa; font-size: 12px; margin-bottom: 3px;">Oyuncu Adı:</label>
+          <input type="text" id="assign-video-username" placeholder="Örn: Hasan34"
+            style="width: 100%; padding: 8px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <label style="display: block; color: #aaa; font-size: 12px; margin-bottom: 3px;">Video Seç:</label>
+          <select id="assign-video-select"
+            style="width: 100%; padding: 8px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; box-sizing: border-box;">
+            <option value="">Video Yükleniyor...</option>
+          </select>
+        </div>
+
+        <button id="save-video-assign-btn"
+          style="width: 100%; padding: 10px; background: #ff4500; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.2s;">
+          💾 KAYDET
+        </button>
+      </div>
+
+      <!-- Assignments List -->
+      <div id="assigned-videos-list-container">
+        <h3
+          style="font-size: 14px; color: #ddd; margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px;">
+          Atanmış Videolar</h3>
+        <div id="assigned-videos-list" style="font-size: 13px;">
+          <!-- Items will be injected here via JS -->
+          <div style="color: #666; font-style: italic; text-align: center; padding: 10px;">Henüz atama yok.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  </div>
+</body>
+
+</html>
